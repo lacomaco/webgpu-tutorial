@@ -16,4 +16,9 @@ fn vs_main(@builtin(vertex_index) in_vertex_index: u32) -> VertexOutput {
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32>{
     return vec4<f32>(0.3,0.2,0.1,1.0);
 }
+
+@fragment
+fn second_fs_main(in: VertexOutput) -> @location(0) vec4<f32>{
+    return vec4<f32>(1.0,0.0,0.0,1.0);
+}
 `;

@@ -17,6 +17,9 @@ export class State {
     };
 
     renderPipeline: GPURenderPipeline | null = null;
+    pressRenderPipeline: GPURenderPipeline | null = null;
+
+    pressSpaceBar = false;
 
     constructor() {
         this.initialize();
@@ -89,7 +92,35 @@ export class State {
                 mask: 0xffffffff,
                 alphaToCoverageEnabled: false,
             },
-            // remove the multiview property
+        });
+
+        this.pressRenderPipeline = this.device.createRenderPipeline({
+            label: 'render pipeline',
+            layout: renderPipelineLayout,
+            vertex: {
+                module: shader,
+                entryPoint: 'vs_main',
+                buffers: []
+            },
+            fragment: {
+                module: shader,
+                entryPoint: 'second_fs_main',
+                targets: [{
+                    format: navigator.gpu.getPreferredCanvasFormat(),
+                }]
+            },
+            primitive: {
+                topology: 'triangle-list',
+                frontFace: 'ccw',
+                cullMode: 'back',
+                unclippedDepth: false,
+            },
+            depthStencil: undefined,
+            multisample: {
+                count:1,
+                mask: 0xffffffff,
+                alphaToCoverageEnabled: false,
+            },
         });
 
         setTimeout(()=>{
@@ -105,6 +136,22 @@ export class State {
     // 이벤트 바인딩은 이곳에서.
     eventBinding() {
         this.canvas.addEventListener('resize', this.resize.bind(this));
+        this.isPressSpaceBar();
+    }
+
+    // 스페이스바 감지
+    isPressSpaceBar() {
+        document.addEventListener("keydown", (event) => {
+                if (event.key === " ") {
+                    this.pressSpaceBar = true;
+                }
+            });
+            
+            document.addEventListener("keyup", (event) => {
+                if (event.key === " ") {
+                    this.pressSpaceBar = false;
+                }
+            });
     }
 
     // 이곳에서 물체에 대한 업데이트를 진행한다.
@@ -146,11 +193,16 @@ export class State {
             return;
         }
 
-        if(!this.renderPipeline){
+        if(!this.renderPipeline || !this.pressRenderPipeline){
             return;
         }
 
-        renderPass.setPipeline(this.renderPipeline);
+        if(this.pressSpaceBar){
+            renderPass.setPipeline(this.pressRenderPipeline);
+        } else {
+            renderPass.setPipeline(this.renderPipeline);
+        }
+
         renderPass.draw(3,1,0,0);
         renderPass.end();
 
@@ -160,6 +212,9 @@ export class State {
     }
 
     keepRerender(){
-        requestAnimationFrame(this.render.bind(this));
+        requestAnimationFrame(()=>{
+            this.render();
+            this.keepRerender();
+        });
     }
 }
